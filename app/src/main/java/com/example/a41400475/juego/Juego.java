@@ -169,7 +169,8 @@ public class Juego {
             posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
 
             for (Sprite s : pinches){
-                if (InterseccionSprites(s, pinche)){
+                boolean resul = InterseccionSprites(s, pinche);
+                if (resul) {
                     Log.d("Colicion", "Hubo colicion");
                     posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
                 }
@@ -195,7 +196,8 @@ public class Juego {
             posInicial.y = generadorAzarDer.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
 
             for (Sprite s : pinches){
-                if (InterseccionSprites(s, pinche)){
+                boolean resul = InterseccionSprites(s, pinche);
+                if (resul){
                     Log.d("Colicion", "Hubo colicion");
                     posInicial.y = generadorAzarDer.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
                 }
