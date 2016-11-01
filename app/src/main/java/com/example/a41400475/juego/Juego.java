@@ -3,13 +3,19 @@ package com.example.a41400475.juego;
 import android.util.Log;
 import android.view.MotionEvent;
 
+import org.cocos2d.actions.instant.CallFunc;
+import org.cocos2d.actions.interval.IntervalAction;
+import org.cocos2d.actions.interval.MoveBy;
+import org.cocos2d.actions.interval.MoveTo;
 import org.cocos2d.actions.interval.RotateTo;
 import org.cocos2d.actions.interval.ScaleBy;
+import org.cocos2d.actions.interval.Sequence;
 import org.cocos2d.layers.Layer;
 import org.cocos2d.nodes.Director;
 import org.cocos2d.nodes.Scene;
 import org.cocos2d.nodes.Sprite;
 import org.cocos2d.opengl.CCGLSurfaceView;
+import org.cocos2d.transitions.SplitRowsTransition;
 import org.cocos2d.types.CCPoint;
 import org.cocos2d.types.CCSize;
 
@@ -28,10 +34,14 @@ public class Juego {
     Sprite pinche;
     ArrayList<Sprite> pinches;
     final ThreadLocal<Sprite> imagenFondo = new ThreadLocal<>();
+    Random generadorAzarIzq;
+    Random generadorAzarDer;
 
     public Juego(CCGLSurfaceView vistaJuego) {
         _vistaJuego = vistaJuego;
         pinches = new ArrayList<Sprite>();
+        generadorAzarIzq = new Random();
+        generadorAzarDer = new Random();
     }
 
     public void ComenzarJuego(){
@@ -61,7 +71,7 @@ public class Juego {
         private void PonerCapaFondo(){
             imagenFondo.set(Sprite.sprite("fondo.png"));
             imagenFondo.get().setPosition(pantallaDispositivo.width/2, pantallaDispositivo.height/2);
-            imagenFondo.get().runAction(ScaleBy.action(0.01f, 3.0f, 6.0f));
+            imagenFondo.get().runAction(ScaleBy.action(0.01f, 3.0f, 4.0f));
             super.addChild(imagenFondo.get());
         }
 
@@ -72,18 +82,7 @@ public class Juego {
         public CapaFrente(){
             this.setIsTouchEnabled(true);
             PonerPajaritoPosInicial();
-
-            Random random = new Random();
-            int cantPinchesIzq = random.nextInt(5 - 3) + 3;;
-            int cantPinchesDer = random.nextInt(5 - 3) + 3;
-
-            for (int i =0; i <= cantPinchesIzq; i++){
-                PonerPincheIzquierda();
-            }
-
-            for (int i =0; i <= cantPinchesDer; i++){
-                PonerPincheDerecha();
-            }
+            PonerPinches();
 
             TimerTask tareaVerificarImpactos = new TimerTask() {
                 @Override
@@ -97,8 +96,22 @@ public class Juego {
 
         @Override
         public boolean ccTouchesBegan(MotionEvent event){
-            //hacer que cada medio segundo por ej baje 20 la posicion, para que suba y baja y cuando vuelve a tocar sube
-            MoverPajarito(0f + pantallaDispositivo.width - pajarito.getWidth()/2, pajarito.getPositionY() + 200f);
+            //hacer que cada medio segundo por ej baje 20 la posicion, para que suba y baje y cuando vuelve a tocar sube
+
+            MoveBy irDerecha, volverMedio;
+            irDerecha = MoveBy.action(1, 300, 100);
+            //girar pajaro para izq
+            volverMedio = MoveBy.action(1, -300, 100);
+            MoveTo irAbajo = MoveTo.action(1, pajarito.getPositionX() + 50, 0);
+            CallFunc finSecuencia = CallFunc.action(this, "FinSecuencia");
+            CallFunc cambiarPinches = CallFunc.action(this, "CambiarPinches");
+
+            IntervalAction secuencia = Sequence.actions(irDerecha, cambiarPinches, volverMedio, irAbajo, finSecuencia);
+            pajarito.runAction(secuencia);
+
+            //MoverPajarito(0f + pantallaDispositivo.width - pajarito.getWidth()/2, pajarito.getPositionY() + 200f);
+            //pajarito = Sprite.sprite("pajaro2.png");
+
             return true;
         }
 
@@ -109,25 +122,27 @@ public class Juego {
 
         @Override
         public boolean ccTouchesEnded(MotionEvent event){
-            //MoverPajarito(event.getX(), pantallaDispositivo.getHeight() - event.getY());
             return true;
+        }
+
+        public void CambiarPinches(){
+            //SacarPinches
+            for (Sprite pinche : pinches) {
+                this.removeChild(pinche, true);
+            }
+            PonerPinches();
+        }
+
+        public void FinSecuencia(){
+            Log.d("Fin", "Fin secuencia");
+
+            if (pajarito.getPositionY() == 0){
+                //perdiste
+            }
         }
 
         void MoverPajarito(float destinoX, float destinoY){
             pajarito.setPosition(destinoX, destinoY);
-            pajarito.runAction(RotateTo.action(0.01f, 270f));
-            //pajarito.setPosition(pajarito.getPositionX() - 20f, pajarito.getPositionY() - 40f);
-
-            /*
-            float movHorizontal, movVertical, suavizador;
-            movHorizontal = destinoX - pantallaDispositivo.getWidth()/2;
-            movVertical = destinoY - pantallaDispositivo.getHeight()/2;
-            suavizador = 20;
-            movHorizontal = movHorizontal/suavizador;
-            movVertical = movVertical/suavizador;
-
-            pajarito.setPosition(pajarito.getPositionX()+ movHorizontal, pajarito.getPositionY() + movVertical);
-            */
         }
 
         private void PonerPajaritoPosInicial(){
@@ -141,7 +156,7 @@ public class Juego {
             super.addChild(pajarito);
         }
 
-        void PonerPincheIzquierda(){
+        public void PonerPincheIzquierda(){
             pinche = Sprite.sprite("pinche.png");
 
             CCPoint posInicial = new CCPoint();
@@ -151,23 +166,22 @@ public class Juego {
             anchoPinche = pinche.getWidth();
             posInicial.x = 0f + anchoPinche/2;
 
-            Random generadorAzar = new Random();
-            posInicial.y = generadorAzar.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+            posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
 
             for (Sprite s : pinches){
-                while (posInicial.y == s.getPositionY()){
-                    posInicial.y = generadorAzar.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+                if (InterseccionSprites(s, pinche)){
+                    Log.d("Colicion", "Hubo colicion");
+                    posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
                 }
             }
 
             pinche.setPosition(posInicial.x, posInicial.y);
-            pinche.runAction(RotateTo.action(0.01f, 180f));
-
             pinches.add(pinche);
+
             super.addChild(pinche);
         }
 
-        void PonerPincheDerecha(){
+        public void PonerPincheDerecha(){
             pinche = Sprite.sprite("pinche.png");
 
             CCPoint posInicial = new CCPoint();
@@ -178,16 +192,37 @@ public class Juego {
             //poner en borde inferior derecha
             posInicial.x = 0f + pantallaDispositivo.width - anchoPinche/2;
 
-            Random generadorAzar = new Random();
-            posInicial.y = generadorAzar.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+            posInicial.y = generadorAzarDer.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+
+            for (Sprite s : pinches){
+                if (InterseccionSprites(s, pinche)){
+                    Log.d("Colicion", "Hubo colicion");
+                    posInicial.y = generadorAzarDer.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+                }
+            }
 
             pinche.setPosition(posInicial.x, posInicial.y);
+            pinche.runAction(RotateTo.action(0.01f, 180f));
 
             pinches.add(pinche);
             super.addChild(pinche);
         }
 
-        void DetectarColociones(){
+        public void PonerPinches(){
+            Random random = new Random();
+            int cantPinchesIzq = random.nextInt(5 - 3) + 3;;
+            int cantPinchesDer = random.nextInt(5 - 3) + 3;
+
+            for (int i =0; i <= cantPinchesIzq; i++){
+                PonerPincheIzquierda();
+            }
+
+            for (int i =0; i <= cantPinchesDer; i++){
+                PonerPincheDerecha();
+            }
+        }
+
+        public void DetectarColociones(){
             boolean huboColicion = false;
             for (Sprite pinche : pinches){
                 if (InterseccionSprites(pajarito, pinche)){
@@ -196,12 +231,11 @@ public class Juego {
             }
             if (huboColicion){
                 Log.d("Colicion", "Hubo colicion");
-            } else {
-                Log.d("Colicion", "No hubo colicion");
+                //perdiste
             }
         }
 
-        boolean InterseccionSprites(Sprite sprite1, Sprite sprite2){
+        public boolean InterseccionSprites(Sprite sprite1, Sprite sprite2){
             boolean devolver = false;
             int sprite1Izq, sprite1Der, sprite1Abajo, sprite1Arriba;
             int sprite2Izq, sprite2Der, sprite2Abajo, sprite2Arriba;
@@ -259,7 +293,7 @@ public class Juego {
             return devolver;
         }
 
-        boolean estaEntre (int numComparar, int numMenor, int numMayor){
+        public boolean estaEntre (int numComparar, int numMenor, int numMayor){
             boolean devolver;
 
             if (numMenor > numMayor){
