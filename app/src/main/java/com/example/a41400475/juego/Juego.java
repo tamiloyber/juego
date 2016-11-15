@@ -122,7 +122,7 @@ public class Juego {
         public boolean ccTouchesBegan(MotionEvent event){
             cant++;
 
-            MoveTo derecha = MoveTo.action(0.3f, pantallaDispositivo.getWidth(), pajarito.getPositionY() + 100f);
+            MoveTo derecha = MoveTo.action(0.5f, pantallaDispositivo.getWidth(), pajarito.getPositionY() + 100f);
             MoveTo izq = MoveTo.action(0.5f, -pantallaDispositivo.getWidth(), pajarito.getPositionY() + 100f);
             CallFunc finSecuencia = CallFunc.action(this, "FinSecuencia");
             CallFunc cambiarPinches = CallFunc.action(this, "CambiarPinches");
@@ -379,6 +379,7 @@ public class Juego {
 
         public void PerdisteDone() {
             Director.sharedDirector().replaceScene(EscenaJuego());
+            //tareaVerificarImpactos.run(); ?
         }
     }
 }
