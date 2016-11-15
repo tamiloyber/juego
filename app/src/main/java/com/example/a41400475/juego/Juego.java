@@ -6,12 +6,14 @@ import android.view.WindowManager;
 
 import org.cocos2d.actions.ease.EaseBounceIn;
 import org.cocos2d.actions.instant.CallFunc;
+import org.cocos2d.actions.interval.DelayTime;
 import org.cocos2d.actions.interval.IntervalAction;
 import org.cocos2d.actions.interval.MoveBy;
 import org.cocos2d.actions.interval.MoveTo;
 import org.cocos2d.actions.interval.RotateTo;
 import org.cocos2d.actions.interval.ScaleBy;
 import org.cocos2d.actions.interval.Sequence;
+import org.cocos2d.layers.ColorLayer;
 import org.cocos2d.layers.Layer;
 import org.cocos2d.nodes.Director;
 import org.cocos2d.nodes.Label;
@@ -20,6 +22,7 @@ import org.cocos2d.nodes.Sprite;
 import org.cocos2d.opengl.CCGLSurfaceView;
 import org.cocos2d.transitions.SplitRowsTransition;
 import org.cocos2d.types.CCColor3B;
+import org.cocos2d.types.CCColor4B;
 import org.cocos2d.types.CCPoint;
 import org.cocos2d.types.CCSize;
 
@@ -42,6 +45,7 @@ public class Juego {
     Random generadorAzarDer;
     int cant = 0;
     Timer relojImpactos;
+    TimerTask tareaVerificarImpactos;
 
     public Juego(CCGLSurfaceView vistaJuego) {
         _vistaJuego = vistaJuego;
@@ -92,7 +96,7 @@ public class Juego {
             PonerPajaritoPosInicial();
             PonerPinches();
 
-            TimerTask tareaVerificarImpactos = new TimerTask() {
+            tareaVerificarImpactos = new TimerTask() {
                 @Override
                 public void run() {
                     DetectarColociones();
@@ -103,9 +107,11 @@ public class Juego {
             TimerTask tareaBajarPajaro = new TimerTask() {
                 @Override
                 public void run() {
-                    MoveTo irAbajo = MoveTo.action(0.8f, pajarito.getPositionX(), pajarito.getPositionY() - 100);
-                    IntervalAction secuen = Sequence.actions(irAbajo);
-                    pajarito.runAction(secuen);
+                    if (pajarito.getPositionY() > 0f + pajarito.getHeight()) {
+                        MoveTo irAbajo = MoveTo.action(0.8f, pajarito.getPositionX(), pajarito.getPositionY() - 100);
+                        IntervalAction secuen = Sequence.actions(irAbajo);
+                        pajarito.runAction(secuen);
+                    }
                 }
             };
             Timer reloj = new Timer();
@@ -116,8 +122,8 @@ public class Juego {
         public boolean ccTouchesBegan(MotionEvent event){
             cant++;
 
-            MoveTo derecha = MoveTo.action(0.5f, pantallaDispositivo.getWidth(), pajarito.getPositionY() + 200f);
-            MoveTo izq = MoveTo.action(0.5f, -pantallaDispositivo.getWidth(), pajarito.getPositionY() + 200f);
+            MoveTo derecha = MoveTo.action(0.3f, pantallaDispositivo.getWidth(), pajarito.getPositionY() + 100f);
+            MoveTo izq = MoveTo.action(0.5f, -pantallaDispositivo.getWidth(), pajarito.getPositionY() + 100f);
             CallFunc finSecuencia = CallFunc.action(this, "FinSecuencia");
             CallFunc cambiarPinches = CallFunc.action(this, "CambiarPinches");
 
@@ -126,7 +132,8 @@ public class Juego {
             posicionInicialY = pantallaDispositivo.height/2;
             IntervalAction secuencia;
 
-            if (cant == 1){
+            //ver si es la primera vez
+            //if (cant == 1){
                 secuencia = Sequence.actions(derecha, finSecuencia);
                 pajarito.runAction(secuencia);
 
@@ -134,16 +141,15 @@ public class Juego {
                 if (pajarito.getPositionX() > pantallaDispositivo.getWidth() - pajarito.getWidth()) {
                     //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
                     MoveTo posInicial = MoveTo.action(0.5f, posicionInicialX, posicionInicialY);
-                    secuencia = Sequence.actions(cambiarPinches, posInicial, finSecuencia);
+                    secuencia = Sequence.actions(cambiarPinches, posInicial, izq, finSecuencia);
                     pajarito.runAction(secuencia);
                 }
-            } else {
+            // } else {
                 //si la posicion es derecha, que vaya para izq y al revez
                 /* izquierda:
                     pajarito = Sprite.sprite("pajaro.png");
                  */
-            }
-
+            // }
 
             return true;
         }
@@ -168,10 +174,6 @@ public class Juego {
 
         public void FinSecuencia(){
             Log.d("Fin", "Fin secuencia");
-
-            if (pajarito.getPositionY() == 0f){
-                Perdiste();
-            }
         }
 
         void MoverPajarito(float destinoX, float destinoY){
@@ -199,7 +201,7 @@ public class Juego {
             anchoPinche = pinche.getWidth();
             posInicial.x = 0f + anchoPinche/2;
 
-            Random r = new Random();
+            //Random r = new Random();
             //posInicial.y  = r.nextInt((5 - 1) + 1) * alturaPinche/3;
 
             posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
@@ -208,7 +210,6 @@ public class Juego {
             for (Sprite s : pinches){
                 boolean resul = InterseccionSprites(s, pinche);
                 if (resul) {
-                    Log.d("Colicion", "Hubo colicion");
                     posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
                 }
             }
@@ -234,7 +235,6 @@ public class Juego {
             for (Sprite s : pinches){
                 boolean resul = InterseccionSprites(s, pinche);
                 if (resul){
-                    Log.d("Colicion", "Hubo colicion");
                     posInicial.y = generadorAzarDer.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
                 }
             }
@@ -247,8 +247,8 @@ public class Juego {
 
         public void PonerPinches(){
             Random random = new Random();
-            int cantPinchesIzq = random.nextInt(5 - 3) + 3;
-            int cantPinchesDer = random.nextInt(5 - 3) + 3;
+            int cantPinchesIzq = random.nextInt(4 - 3) + 3;
+            int cantPinchesDer = random.nextInt(4 - 3) + 3;
 
             for (int i =0; i <= cantPinchesIzq; i++){
                 PonerPincheIzquierda();
@@ -264,12 +264,13 @@ public class Juego {
             for (Sprite pinche : pinches){
                 if (InterseccionSprites(pajarito, pinche)){
                     huboColicion = true;
+                    break;
                 }
             }
             if (huboColicion){
                 Log.d("Colicion", "Hubo colicion");
-                relojImpactos.cancel();
-                Perdiste();
+                tareaVerificarImpactos.cancel();
+                Perder();
             }
         }
 
@@ -332,8 +333,6 @@ public class Juego {
         }
 
         public boolean estaEntre (int numComparar, int numMenor, int numMayor){
-            boolean devolver;
-
             if (numMenor > numMayor){
                 int auxiliar;
                 auxiliar = numMayor;
@@ -342,19 +341,44 @@ public class Juego {
             }
 
             if (numComparar >= numMenor && numComparar <= numMayor){
-                devolver = true;
+                return true;
             } else {
-                devolver = false;
+                return false;
             }
-
-            return devolver;
         }
 
 
-        public void Perdiste(){
-            Perdiste perdiste = new Perdiste(_vistaJuego);
-            perdiste.Comenzar();
+        public void Perder(){
+            removeAllChildren(true);
+            Director.sharedDirector().replaceScene(EscenaPerdiste());
         }
 
+    }
+
+    private Scene EscenaPerdiste(){
+        Scene escenaDevolver = Scene.node();
+        Perdiste perdiste = new Perdiste();
+        escenaDevolver.addChild(perdiste, 10);
+
+        return escenaDevolver;
+    }
+
+    private class Perdiste extends Layer {
+        Label perdiste;
+
+        public Perdiste() {
+            this.setIsTouchEnabled(true);
+            perdiste = Label.label("Perdiste", "Verdana", 50);
+            perdiste.setString("Perdiste!");
+            CCColor3B color = new CCColor3B(255, 255, 255);
+            perdiste.setColor(color);
+            perdiste.setPosition(pantallaDispositivo.width / 2, pantallaDispositivo.height / 2);
+            addChild(perdiste);
+            this.runAction(Sequence.actions(DelayTime.action(2.0f), CallFunc.action(this, "PerdisteDone")));
+        }
+
+        public void PerdisteDone() {
+            Director.sharedDirector().replaceScene(EscenaJuego());
+        }
     }
 }
