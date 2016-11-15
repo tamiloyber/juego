@@ -2,7 +2,9 @@ package com.example.a41400475.juego;
 
 import android.util.Log;
 import android.view.MotionEvent;
+import android.view.WindowManager;
 
+import org.cocos2d.actions.ease.EaseBounceIn;
 import org.cocos2d.actions.instant.CallFunc;
 import org.cocos2d.actions.interval.IntervalAction;
 import org.cocos2d.actions.interval.MoveBy;
@@ -12,10 +14,12 @@ import org.cocos2d.actions.interval.ScaleBy;
 import org.cocos2d.actions.interval.Sequence;
 import org.cocos2d.layers.Layer;
 import org.cocos2d.nodes.Director;
+import org.cocos2d.nodes.Label;
 import org.cocos2d.nodes.Scene;
 import org.cocos2d.nodes.Sprite;
 import org.cocos2d.opengl.CCGLSurfaceView;
 import org.cocos2d.transitions.SplitRowsTransition;
+import org.cocos2d.types.CCColor3B;
 import org.cocos2d.types.CCPoint;
 import org.cocos2d.types.CCSize;
 
@@ -36,12 +40,15 @@ public class Juego {
     final ThreadLocal<Sprite> imagenFondo = new ThreadLocal<>();
     Random generadorAzarIzq;
     Random generadorAzarDer;
+    int cant = 0;
+    Timer relojImpactos;
 
     public Juego(CCGLSurfaceView vistaJuego) {
         _vistaJuego = vistaJuego;
         pinches = new ArrayList<Sprite>();
         generadorAzarIzq = new Random();
         generadorAzarDer = new Random();
+        relojImpactos = new Timer();
     }
 
     public void ComenzarJuego(){
@@ -81,36 +88,62 @@ public class Juego {
 
         public CapaFrente(){
             this.setIsTouchEnabled(true);
+
             PonerPajaritoPosInicial();
             PonerPinches();
 
             TimerTask tareaVerificarImpactos = new TimerTask() {
                 @Override
                 public void run() {
-                    //DetectarColociones();
+                    DetectarColociones();
                 }
             };
-            Timer relojImpactos = new Timer();
             relojImpactos.schedule(tareaVerificarImpactos, 0, 100);
+
+            TimerTask tareaBajarPajaro = new TimerTask() {
+                @Override
+                public void run() {
+                    MoveTo irAbajo = MoveTo.action(0.8f, pajarito.getPositionX(), pajarito.getPositionY() - 100);
+                    IntervalAction secuen = Sequence.actions(irAbajo);
+                    pajarito.runAction(secuen);
+                }
+            };
+            Timer reloj = new Timer();
+            reloj.schedule(tareaBajarPajaro, 0, 500);
         }
 
         @Override
         public boolean ccTouchesBegan(MotionEvent event){
-            //hacer que cada medio segundo por ej baje 20 la posicion, para que suba y baje y cuando vuelve a tocar sube
+            cant++;
 
-            MoveBy irDerecha, volverMedio;
-            irDerecha = MoveBy.action(1, 300, 100);
-            //girar pajaro para izq
-            volverMedio = MoveBy.action(1, -300, 100);
-            MoveTo irAbajo = MoveTo.action(1, pajarito.getPositionX() + 50, 0);
+            MoveTo derecha = MoveTo.action(0.5f, pantallaDispositivo.getWidth(), pajarito.getPositionY() + 200f);
+            MoveTo izq = MoveTo.action(0.5f, -pantallaDispositivo.getWidth(), pajarito.getPositionY() + 200f);
             CallFunc finSecuencia = CallFunc.action(this, "FinSecuencia");
             CallFunc cambiarPinches = CallFunc.action(this, "CambiarPinches");
 
-            IntervalAction secuencia = Sequence.actions(irDerecha, cambiarPinches, volverMedio, irAbajo, finSecuencia);
-            pajarito.runAction(secuencia);
+            float posicionInicialX, posicionInicialY;
+            posicionInicialX = pantallaDispositivo.width/2;
+            posicionInicialY = pantallaDispositivo.height/2;
+            IntervalAction secuencia;
 
-            //MoverPajarito(0f + pantallaDispositivo.width - pajarito.getWidth()/2, pajarito.getPositionY() + 200f);
-            //pajarito = Sprite.sprite("pajaro2.png");
+            if (cant == 1){
+                secuencia = Sequence.actions(derecha, finSecuencia);
+                pajarito.runAction(secuencia);
+
+                //si es mayor a cerquita de la pantalla, lo mando para el otro lado
+                if (pajarito.getPositionX() > pantallaDispositivo.getWidth() - pajarito.getWidth()) {
+                    //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
+                    MoveTo posInicial = MoveTo.action(0.5f, posicionInicialX, posicionInicialY);
+                    secuencia = Sequence.actions(cambiarPinches, posInicial, finSecuencia);
+                    pajarito.runAction(secuencia);
+                }
+            } else {
+                //si la posicion es derecha, que vaya para izq y al revez
+                /* izquierda:
+                    pajarito = Sprite.sprite("pajaro.png");
+                 */
+            }
+
 
             return true;
         }
@@ -136,8 +169,8 @@ public class Juego {
         public void FinSecuencia(){
             Log.d("Fin", "Fin secuencia");
 
-            if (pajarito.getPositionY() == 0){
-                //perdiste
+            if (pajarito.getPositionY() == 0f){
+                Perdiste();
             }
         }
 
@@ -166,7 +199,11 @@ public class Juego {
             anchoPinche = pinche.getWidth();
             posInicial.x = 0f + anchoPinche/2;
 
+            Random r = new Random();
+            //posInicial.y  = r.nextInt((5 - 1) + 1) * alturaPinche/3;
+
             posInicial.y = generadorAzarIzq.nextInt((int) pantallaDispositivo.height - (int) alturaPinche) + alturaPinche/2;
+
 
             for (Sprite s : pinches){
                 boolean resul = InterseccionSprites(s, pinche);
@@ -178,7 +215,6 @@ public class Juego {
 
             pinche.setPosition(posInicial.x, posInicial.y);
             pinches.add(pinche);
-
             super.addChild(pinche);
         }
 
@@ -205,14 +241,13 @@ public class Juego {
 
             pinche.setPosition(posInicial.x, posInicial.y);
             pinche.runAction(RotateTo.action(0.01f, 180f));
-
             pinches.add(pinche);
             super.addChild(pinche);
         }
 
         public void PonerPinches(){
             Random random = new Random();
-            int cantPinchesIzq = random.nextInt(5 - 3) + 3;;
+            int cantPinchesIzq = random.nextInt(5 - 3) + 3;
             int cantPinchesDer = random.nextInt(5 - 3) + 3;
 
             for (int i =0; i <= cantPinchesIzq; i++){
@@ -233,7 +268,8 @@ public class Juego {
             }
             if (huboColicion){
                 Log.d("Colicion", "Hubo colicion");
-                //perdiste
+                relojImpactos.cancel();
+                Perdiste();
             }
         }
 
@@ -312,6 +348,12 @@ public class Juego {
             }
 
             return devolver;
+        }
+
+
+        public void Perdiste(){
+            Perdiste perdiste = new Perdiste(_vistaJuego);
+            perdiste.Comenzar();
         }
 
     }
