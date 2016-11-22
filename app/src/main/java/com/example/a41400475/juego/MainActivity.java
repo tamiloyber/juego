@@ -25,6 +25,6 @@ public class MainActivity extends AppCompatActivity {
     protected void onStart(){
         super.onStart();
         Juego juego = new Juego(vistaPrincipal);
-        juego.ComenzarJuego();
+        juego.PantallaPrincipal();
     }
 }
