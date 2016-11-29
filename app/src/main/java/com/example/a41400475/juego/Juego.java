@@ -32,6 +32,7 @@ import org.cocos2d.types.CCSize;
 
 import java.util.ArrayList;
 import java.util.Random;
+import java.util.StringTokenizer;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -46,20 +47,26 @@ public class Juego {
     Sprite pinche;
     ArrayList<Sprite> pinches;
     final ThreadLocal<Sprite> imagenFondo = new ThreadLocal<>();
-    Action abajoAction;
-    MoveBy mover;
+    MoveTo mover;
+    Action moverAction;
+    IntervalAction secuencia;
+    Boolean touch;
+    RotateTo rotar;
+    Boolean sumoIzq, sumoDer;
 
     public Juego(CCGLSurfaceView vistaJuego) {
         _vistaJuego = vistaJuego;
         pinches = new ArrayList<Sprite>();
     }
 
+    /*
     public void ComenzarJuego(){
         Director.sharedDirector().attachInView(_vistaJuego);
         pantallaDispositivo = Director.sharedDirector().displaySize();
         Log.d("Comenzar", "Comienza el juego");
         Director.sharedDirector().runWithScene(EscenaJuego());
     }
+    */
 
     public void PantallaPrincipal(){
         Director.sharedDirector().attachInView(_vistaJuego);
@@ -101,12 +108,11 @@ public class Juego {
             super.addChild(botones);
         }
 
-        /*
         public void ComenzarJuego(){
             Log.d("Comenzar", "Comienza el juego");
             Director.sharedDirector().runWithScene(EscenaJuego());
         }
-        */
+
     }
 
     private Scene EscenaJuego(){
@@ -151,79 +157,57 @@ public class Juego {
             generadorAzarDer = new Random();
             relojImpactos = new Timer();
             cant = 0;
+            touch = false;
+            sumoDer = false;
+            sumoIzq = false;
 
             puntaje = Label.label("puntaje", "Calibri", 150);
             CCColor3B color = new CCColor3B(0,169,79);
             puntaje.setColor(color);
             puntaje.setPosition(pantallaDispositivo.width/2, pantallaDispositivo.getHeight()/2);
+            puntaje.setString(String.valueOf(cant));
+            addChild(puntaje);
 
             pajarito = Sprite.sprite("pajaro.png");
             PonerPajaritoPosInicial();
-            PonerPinches();
+            PonerPinchesDerecha();
+            PonerPinchesIzquierda();
 
             tareaVerificarImpactos = new TimerTask() {
                 @Override
                 public void run() {
                     DetectarColociones();
+
+                    MoveBy arriba;
+                    MoveTo abajo;
+                    if (pajarito.getRotation() == -90){
+                        //izq
+                        mover = MoveTo.action(5f,-(pajarito.getPositionX() + 200), 0f);
+                        arriba = MoveBy.action(0.6f, -(pajarito.getPositionX() + 200), 400);
+                        abajo = MoveTo.action(5f, pajarito.getPositionX() - 200, 0f);
+                    } else {
+                        //der
+                        mover = MoveTo.action(5f,pajarito.getPositionX() + 200,0f);
+                        arriba = MoveBy.action(0.6f, pajarito.getPositionX() + 200, 400);
+                        abajo = MoveTo.action(5f, pajarito.getPositionX() + 200, 0f);
+                    }
+                    moverAction = pajarito.runAction(mover);
+
+                    if (touch) {
+                        pajarito.stopAction(moverAction);
+                        secuencia = Sequence.actions(arriba, abajo);
+                        pajarito.runAction(secuencia);
+                    }
+
                 }
             };
             relojImpactos.schedule(tareaVerificarImpactos, 0, 100);
-
-            cambiarPinches = CallFunc.action(this, "CambiarPinches");
-
-            tareaBajarPajaro = new TimerTask() {
-                @Override
-                public void run() {
-                    if (pajarito.getPositionY() > 0f + pajarito.getHeight()) {
-                        MoveTo irAbajo = MoveTo.action(0.6f, pajarito.getPositionX(), pajarito.getPositionY() - 100);
-                        IntervalAction secuen = Sequence.actions(irAbajo);
-                        abajoAction = pajarito.runAction(secuen);
-                    }
-
-                    float posicionInicialX, posicionInicialY;
-                    posicionInicialX = pantallaDispositivo.width/2;
-                    posicionInicialY = pantallaDispositivo.height/2;
-                    MoveTo posInicial = MoveTo.action(0.7f, posicionInicialX, posicionInicialY);
-
-                    IntervalAction secuencia;
-                    if (pajarito.getPositionX() >= (pantallaDispositivo.getWidth() - pajarito.getWidth()/2) - 50) {
-                        cant++;
-                        //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
-                        RotateTo rotar = RotateTo.action(0.01f, 270);
-                        secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
-                        pajarito.runAction(secuencia);
-                        tareaVerificarImpactos.run();
-                    }
-
-                    if (pajarito.getPositionX() <= (0f + pajarito.getWidth()/2) + 50) {
-                        cant++;
-                        RotateTo rotar = RotateTo.action(0.01f, 360);
-                        secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
-                        pajarito.runAction(secuencia);
-                        tareaVerificarImpactos.run();
-                    }
-
-                    puntaje.setString(String.valueOf(cant));
-                    addChild(puntaje);
-
-                }
-            };
-            Timer reloj = new Timer();
-            reloj.schedule(tareaBajarPajaro, 500, 500);
         }
+
 
         @Override
         public boolean ccTouchesBegan(MotionEvent event){
-            pajarito.stopAction(abajoAction);
-
-
-            if (pajarito.getRotation() == -90) {
-                mover = MoveBy.action(0.7f, -pantallaDispositivo.getWidth()/2, 260);
-            } else {
-                mover = MoveBy.action(0.7f, pantallaDispositivo.getWidth()/2, 260);
-            }
-            pajarito.runAction(mover);
-
+            touch = true;
             return true;
         }
 
@@ -234,22 +218,37 @@ public class Juego {
 
         @Override
         public boolean ccTouchesEnded(MotionEvent event){
+            touch = false;
             return true;
         }
 
         public void CambiarPinches(){
-            tareaVerificarImpactos.cancel();
             //SacarPinches
-            for (Sprite pinche : pinches) {
-                this.removeChild(pinche, true);
+            if (pajarito.getRotation() == -90){
+                //izq
+                //sacar pinches derecha
+                for (Sprite pinche : pinches) {
+                    if (pinche.getPositionX() == 0f + pantallaDispositivo.width - pinche.getWidth()/2) {
+                        this.removeChild(pinche, true);
+                    }
+                }
+                PonerPinchesDerecha();
+            } else {
+                //sacar pinches izquierda
+                for (Sprite pinche : pinches) {
+                    if (pinche.getPositionX() == 0f + pinche.getWidth()/2) {
+                        this.removeChild(pinche, true);
+                    }
+                }
+                PonerPinchesIzquierda();
             }
-            PonerPinches();
-            pinches.notify();
+
         }
 
         public void PonerPajaritoPosInicial(){
             float posicionInicialX, posicionInicialY;
-            posicionInicialX = pantallaDispositivo.width/2;
+            pinche = Sprite.sprite("pinche.png");
+            posicionInicialX = 0f + pajarito.getWidth() + pinche.getWidth();
             posicionInicialY = pantallaDispositivo.height/2;
             pajarito.setPosition(posicionInicialX,posicionInicialY);
 
@@ -306,17 +305,21 @@ public class Juego {
             super.addChild(pinche);
         }
 
-        public void PonerPinches(){
+        public void PonerPinchesDerecha(){
             Random random = new Random();
-            int cantPinchesIzq = random.nextInt(3 - 2) + 2;
             int cantPinchesDer = random.nextInt(3 - 2) + 2;
-
-            for (int i =0; i <= cantPinchesIzq; i++){
-                PonerPincheIzquierda();
-            }
 
             for (int i =0; i <= cantPinchesDer; i++){
                 PonerPincheDerecha();
+            }
+        }
+
+        public void PonerPinchesIzquierda(){
+            Random random = new Random();
+            int cantPinchesIzq = random.nextInt(3 - 2) + 2;
+
+            for (int i =0; i <= cantPinchesIzq; i++){
+                PonerPincheIzquierda();
             }
         }
 
@@ -329,8 +332,39 @@ public class Juego {
                 }
             }
             if (huboColicion){
+                tareaVerificarImpactos.cancel();
                 Log.d("Colicion", "Hubo colicion");
                 Perder();
+            } else {
+                if (pajarito.getPositionX() >= (pantallaDispositivo.getWidth() - pajarito.getWidth()/2) - 40) {
+                    //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
+                    rotar = RotateTo.action(0.01f, 270);
+                    pajarito.stopAction(moverAction);
+                    pajarito.runAction(rotar);
+                    pajarito.runAction(moverAction);
+                    if (!sumoIzq) {
+                        cant++;
+                        sumoIzq =true;
+                        sumoDer =false;
+                    }
+                    puntaje.setString(String.valueOf(cant));
+                    CambiarPinches();
+                }
+
+                if (pajarito.getPositionX() <= (0f + pajarito.getWidth()/2) + 40) {
+                    rotar = RotateTo.action(0.01f, 360);
+                    pajarito.stopAction(moverAction);
+                    pajarito.runAction(rotar);
+                    pajarito.runAction(moverAction);
+                    if (!sumoDer) {
+                        cant++;
+                        sumoDer =true;
+                        sumoIzq =false;
+                    }
+                    puntaje.setString(String.valueOf(cant));
+                    CambiarPinches();
+                }
+
             }
         }
 
@@ -440,8 +474,8 @@ public class Juego {
         }
 
         public void PerdisteDone() {
-            //Director.sharedDirector().replaceScene(EscenaPrincipal());
-            Director.sharedDirector().replaceScene(EscenaJuego());
+            Director.sharedDirector().replaceScene(EscenaPrincipal());
+            //Director.sharedDirector().replaceScene(EscenaJuego());
         }
     }
 }
