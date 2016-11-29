@@ -53,6 +53,13 @@ public class Juego {
         pinches = new ArrayList<Sprite>();
     }
 
+    public void ComenzarJuego(){
+        Director.sharedDirector().attachInView(_vistaJuego);
+        pantallaDispositivo = Director.sharedDirector().displaySize();
+        Log.d("Comenzar", "Comienza el juego");
+        Director.sharedDirector().runWithScene(EscenaJuego());
+    }
+
     public void PantallaPrincipal(){
         Director.sharedDirector().attachInView(_vistaJuego);
         pantallaDispositivo = Director.sharedDirector().displaySize();
@@ -74,10 +81,10 @@ public class Juego {
         public CapaPrincipalFrente() { PonerCapaPrincipalFrente(); }
 
         private void PonerCapaPrincipalFrente() {
-            Label bienvenidos = Label.label("¡BIENVENIDOS!", "Calibri", 80);
+            Label bienvenidos = Label.label("Bienvenidos", "Calibri", 80);
             CCColor3B color = new CCColor3B(0,169,79);
             bienvenidos.setColor(color);
-            bienvenidos.setString("Bienvenidos");
+            bienvenidos.setString("¡BIENVENIDOS!");
             bienvenidos.setPosition(pantallaDispositivo.width/2, pantallaDispositivo.getHeight()/2);
 
             MenuItemImage boton = MenuItemImage.item("play.png", "play.png", this, "ComenzarJuego");
@@ -93,10 +100,12 @@ public class Juego {
             super.addChild(botones);
         }
 
+        /*
         public void ComenzarJuego(){
             Log.d("Comenzar", "Comienza el juego");
             Director.sharedDirector().runWithScene(EscenaJuego());
         }
+        */
     }
 
     private Scene EscenaJuego(){
@@ -126,19 +135,26 @@ public class Juego {
     }
 
     class CapaFrente extends Layer {
-
         TimerTask tareaBajarPajaro;
         Random generadorAzarIzq;
         Random generadorAzarDer;
         Timer relojImpactos;
         TimerTask tareaVerificarImpactos;
         CallFunc cambiarPinches;
+        int cant;
+        Label puntaje;
 
         public CapaFrente(){
             this.setIsTouchEnabled(true);
             generadorAzarIzq = new Random();
             generadorAzarDer = new Random();
             relojImpactos = new Timer();
+            cant = 0;
+
+            puntaje = Label.label("puntaje", "Calibri", 150);
+            CCColor3B color = new CCColor3B(0,169,79);
+            puntaje.setColor(color);
+            puntaje.setPosition(pantallaDispositivo.width/2, pantallaDispositivo.getHeight()/2);
 
             pajarito = Sprite.sprite("pajaro.png");
             PonerPajaritoPosInicial();
@@ -163,7 +179,6 @@ public class Juego {
                         abajoAction = pajarito.runAction(secuen);
                     }
 
-                    boolean haciendo = false;
                     float posicionInicialX, posicionInicialY;
                     posicionInicialX = pantallaDispositivo.width/2;
                     posicionInicialY = pantallaDispositivo.height/2;
@@ -171,26 +186,24 @@ public class Juego {
 
                     IntervalAction secuencia;
                     if (pajarito.getPositionX() >= (pantallaDispositivo.getWidth() - pajarito.getWidth()/2) - 50) {
-                        haciendo = true;
+                        cant++;
                         //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
                         RotateTo rotar = RotateTo.action(0.01f, 270);
                         secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
+                        tareaVerificarImpactos.run();
                         pajarito.runAction(secuencia);
                     }
 
                     if (pajarito.getPositionX() <= (0f + pajarito.getWidth()/2) + 50) {
-                        haciendo = true;
+                        cant++;
                         RotateTo rotar = RotateTo.action(0.01f, 360);
                         secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
+                        tareaVerificarImpactos.run();
                         pajarito.runAction(secuencia);
                     }
 
-                    //REVISAR ESTO, NO PIERDE
-                    if (haciendo){
-                        tareaVerificarImpactos.cancel();
-                    } else {
-                        tareaVerificarImpactos.run();
-                    }
+                    puntaje.setString(String.valueOf(cant));
+                    addChild(puntaje);
 
                 }
             };
@@ -204,9 +217,9 @@ public class Juego {
 
             MoveBy mover;
             if (pajarito.getRotation() == -90) {
-                mover = MoveBy.action(0.7f, -pantallaDispositivo.width + pajarito.getWidth()/2, 200);
+                mover = MoveBy.action(0.7f, -pantallaDispositivo.width + pajarito.getPositionX()/2, 200);
             } else {
-                mover = MoveBy.action(0.7f, pantallaDispositivo.width - pajarito.getWidth()/2, 200);
+                mover = MoveBy.action(0.7f, pantallaDispositivo.width - pajarito.getPositionX()/2, 200);
             }
             pajarito.runAction(mover);
 
@@ -224,6 +237,7 @@ public class Juego {
         }
 
         public void CambiarPinches(){
+            tareaVerificarImpactos.cancel();
             //SacarPinches
             for (Sprite pinche : pinches) {
                 this.removeChild(pinche, true);
@@ -394,8 +408,9 @@ public class Juego {
 
 
         public void Perder(){
-            removeAllChildren(true);
             pinches = new ArrayList<>();
+            cant = 0;
+            removeAllChildren(true);
             Director.sharedDirector().replaceScene(EscenaPerdiste());
         }
 
@@ -424,7 +439,8 @@ public class Juego {
         }
 
         public void PerdisteDone() {
-            Director.sharedDirector().replaceScene(EscenaPrincipal());
+            //Director.sharedDirector().replaceScene(EscenaPrincipal());
+            Director.sharedDirector().replaceScene(EscenaJuego());
         }
     }
 }
