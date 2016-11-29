@@ -47,6 +47,7 @@ public class Juego {
     ArrayList<Sprite> pinches;
     final ThreadLocal<Sprite> imagenFondo = new ThreadLocal<>();
     Action abajoAction;
+    MoveBy mover;
 
     public Juego(CCGLSurfaceView vistaJuego) {
         _vistaJuego = vistaJuego;
@@ -190,16 +191,16 @@ public class Juego {
                         //girar pajaro para izq --> pajarito = Sprite.sprite("pajaro2.png");
                         RotateTo rotar = RotateTo.action(0.01f, 270);
                         secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
-                        tareaVerificarImpactos.run();
                         pajarito.runAction(secuencia);
+                        tareaVerificarImpactos.run();
                     }
 
                     if (pajarito.getPositionX() <= (0f + pajarito.getWidth()/2) + 50) {
                         cant++;
                         RotateTo rotar = RotateTo.action(0.01f, 360);
                         secuencia = Sequence.actions(rotar, posInicial, cambiarPinches);
-                        tareaVerificarImpactos.run();
                         pajarito.runAction(secuencia);
+                        tareaVerificarImpactos.run();
                     }
 
                     puntaje.setString(String.valueOf(cant));
@@ -215,11 +216,11 @@ public class Juego {
         public boolean ccTouchesBegan(MotionEvent event){
             pajarito.stopAction(abajoAction);
 
-            MoveBy mover;
+
             if (pajarito.getRotation() == -90) {
-                mover = MoveBy.action(0.7f, -pantallaDispositivo.width + pajarito.getPositionX()/2, 200);
+                mover = MoveBy.action(0.7f, -pantallaDispositivo.getWidth()/2, 260);
             } else {
-                mover = MoveBy.action(0.7f, pantallaDispositivo.width - pajarito.getPositionX()/2, 200);
+                mover = MoveBy.action(0.7f, pantallaDispositivo.getWidth()/2, 260);
             }
             pajarito.runAction(mover);
 
@@ -307,8 +308,8 @@ public class Juego {
 
         public void PonerPinches(){
             Random random = new Random();
-            int cantPinchesIzq = random.nextInt(4 - 2) + 2;
-            int cantPinchesDer = random.nextInt(4 - 2) + 2;
+            int cantPinchesIzq = random.nextInt(3 - 2) + 2;
+            int cantPinchesDer = random.nextInt(3 - 2) + 2;
 
             for (int i =0; i <= cantPinchesIzq; i++){
                 PonerPincheIzquierda();
