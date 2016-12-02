@@ -181,12 +181,12 @@ public class Juego {
                     if (pajarito.getOpacity() == 254) {
                         //izq
                         mover = MoveTo.action(3f,-(pajarito.getPositionX() + 200), 0f);
-                        arriba = MoveBy.action(0.6f, -(pajarito.getPositionX() + 200), 400);
+                        arriba = MoveBy.action(0.8f, -(pajarito.getPositionX() + 200), 400);
                         abajo = MoveTo.action(3f, pajarito.getPositionX() - 200, 0f);
                     } else {
                         //der
                         mover = MoveTo.action(3f,pajarito.getPositionX() + 200,0f);
-                        arriba = MoveBy.action(0.6f, pajarito.getPositionX() + 200, 400);
+                        arriba = MoveBy.action(0.8f, pajarito.getPositionX() + 200, 400);
                         abajo = MoveTo.action(3f, pajarito.getPositionX() + 200, 0f);
                     }
                     moverAction = pajarito.runAction(mover);
