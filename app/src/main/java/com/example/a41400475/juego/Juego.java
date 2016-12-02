@@ -223,19 +223,31 @@ public class Juego {
             //SacarPinches
             if (lado.equals("izq")){
                 //sacar pinches derecha
+                Sprite colisionado = Sprite.sprite("pajaro.png");
+                boolean entro = false;
                 for (Sprite pinche : pinches) {
                     if (pinche.getPositionX() == 0f + pantallaDispositivo.width - pinche.getWidth()/2) {
                         this.removeChild(pinche, true);
+                        colisionado = pinche;
+                        entro = true;
                     }
                 }
+                if (entro)
+                    pinches.remove(colisionado);
                 PonerPinchesDerecha();
             } else {
                 //sacar pinches izquierda
+                Sprite colisionado = Sprite.sprite("pajaro.png");
+                boolean entro = false;
                 for (Sprite pinche : pinches) {
                     if (pinche.getPositionX() == 0f + pinche.getWidth()/2) {
                         this.removeChild(pinche, true);
+                        colisionado = pinche;
+                        entro = true;
                     }
                 }
+                if (entro)
+                    pinches.remove(colisionado);
                 PonerPinchesIzquierda();
             }
 
